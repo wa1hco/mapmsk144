@@ -4,7 +4,13 @@ import datetime
 import numpy as np
 from PyQt5 import QtWidgets
 
-from .ui import setup_ui, on_min_level_changed, on_max_level_changed
+from .ui import (
+    setup_ui,
+    on_min_level_changed,
+    on_max_level_changed,
+    on_select_source_flex,
+    on_select_source_wav,
+)
 from .runtime import setup_flex_client, run_flex_client, _get_tuned_frequency_mhz, closeEvent
 from .processing import process_iq_data
 from .displays import update_displays
@@ -16,6 +22,8 @@ class DAXIQVisualizer(QtWidgets.QMainWindow):
     setup_ui = setup_ui
     on_min_level_changed = on_min_level_changed
     on_max_level_changed = on_max_level_changed
+    on_select_source_flex = on_select_source_flex
+    on_select_source_wav = on_select_source_wav
     setup_flex_client = setup_flex_client
     run_flex_client = run_flex_client
     _get_tuned_frequency_mhz = _get_tuned_frequency_mhz
@@ -23,15 +31,24 @@ class DAXIQVisualizer(QtWidgets.QMainWindow):
     update_displays = update_displays
     closeEvent = closeEvent
 
-    def __init__(self, center_freq_mhz=50.260, sample_rate=48000, fft_size=2048):
+    def __init__(self, center_freq_mhz=50.260, sample_rate=48000, fft_size=2048,
+                 bind_client_id=None, bind_client_handle=None):
         super().__init__()
         self.center_freq_mhz = center_freq_mhz
         self.sample_rate = sample_rate
         self.fft_size = fft_size
+        self.bind_client_id = bind_client_id or bind_client_handle
         self.history_secs = 15
         self.blocks_per_sec = self.sample_rate / self.fft_size
         self.max_history = int(round(self.history_secs * self.blocks_per_sec))
         self.running = True
+        self.source_mode = "flex"
+        self.selected_wav_path = None
+        self._flex_started = False
+        self._wav_samples = None
+        self._wav_path_loaded = None
+        self._wav_index = 0
+        self._wav_time_cursor = 0.0
 
         self.sample_buffer = np.array([], dtype=np.complex64)
 
@@ -46,13 +63,6 @@ class DAXIQVisualizer(QtWidgets.QMainWindow):
         self.spec_staging_filled = False
         initial_index = int(self.time_in_window * self.blocks_per_sec)
         self.spec_write_index = min(max(initial_index, 0), self.max_history - 1)
-
-        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-        print(
-            f"[{timestamp}] Starting at {self.time_in_window:.1f}s into 15-sec window, "
-            f"next boundary in {self.history_secs - self.time_in_window:.1f}s",
-            flush=True,
-        )
 
         self.realtime_data = np.full((self.max_history, self.fft_size), -130.0)
         self.realtime_time = self.history_secs
@@ -80,11 +90,6 @@ class DAXIQVisualizer(QtWidgets.QMainWindow):
         self.freq_axis = self.fft_bin_axis_mhz + self.center_freq_mhz
         self.display_center_freq_mhz = self.center_freq_mhz
 
-        print(
-            f"Frequency axis: {self.freq_axis[0]:.6f} to {self.freq_axis[-1]:.6f} MHz "
-            f"(span: {(self.freq_axis[-1]-self.freq_axis[0])*1000:.1f} kHz)",
-            flush=True,
-        )
         print(f"Center requested: {self.center_freq_mhz:.6f} MHz", flush=True)
 
         self.setup_ui()

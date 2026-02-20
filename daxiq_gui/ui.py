@@ -9,6 +9,25 @@ def setup_ui(self):
     self.setWindowTitle(f'FlexRadio DAXIQ - {self.center_freq_mhz:.3f} MHz')
     self.setGeometry(100, 100, 1400, 900)
 
+    menu_bar = self.menuBar()
+    file_menu = menu_bar.addMenu("&File")
+
+    self.source_action_group = QtWidgets.QActionGroup(self)
+    self.source_action_group.setExclusive(True)
+
+    self.source_flex_action = QtWidgets.QAction("Flex Radio", self)
+    self.source_flex_action.setCheckable(True)
+    self.source_flex_action.setChecked(True)
+    self.source_flex_action.triggered.connect(self.on_select_source_flex)
+    self.source_action_group.addAction(self.source_flex_action)
+    file_menu.addAction(self.source_flex_action)
+
+    self.source_wav_action = QtWidgets.QAction("WAV File", self)
+    self.source_wav_action.setCheckable(True)
+    self.source_wav_action.triggered.connect(self.on_select_source_wav)
+    self.source_action_group.addAction(self.source_wav_action)
+    file_menu.addAction(self.source_wav_action)
+
     central = QtWidgets.QWidget()
     self.setCentralWidget(central)
     layout = QtWidgets.QGridLayout(central)
@@ -129,3 +148,28 @@ def on_min_level_changed(self, value):
 def on_max_level_changed(self, value):
     self.max_level = value
     self.max_level_label.setText(f"Max Level: {value} dB")
+
+
+def on_select_source_flex(self):
+    self.source_mode = "flex"
+    self.selected_wav_path = None
+    self.statusBar().showMessage("Source selected: Flex Radio")
+
+
+def on_select_source_wav(self):
+    file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        self,
+        "Select WAV File",
+        "",
+        "WAV Files (*.wav);;All Files (*)",
+    )
+
+    if not file_path:
+        self.source_flex_action.setChecked(True)
+        self.source_mode = "flex"
+        self.statusBar().showMessage("Source selected: Flex Radio")
+        return
+
+    self.source_mode = "wav"
+    self.selected_wav_path = file_path
+    self.statusBar().showMessage(f"Source selected: WAV File ({file_path})")

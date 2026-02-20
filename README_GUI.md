@@ -20,26 +20,44 @@ Real-time I/Q data visualization for FlexRadio with three synchronized displays.
 ## Requirements
 
 - Python 3
-- PyQt5 (already installed)
-- pyqtgraph (just installed)
-- numpy (already installed)
+
+## Setup
+
+Create a virtual environment and install dependencies:
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
 
 ## Usage
 
-### Basic usage (center frequency 50.260 MHz, 48 kHz sample rate):
+### Basic usage (48 kHz sample rate):
 ```bash
-python3 flex_gui.py
+.venv/bin/python flex_gui.py
 ```
 
-### Custom frequency:
+### Custom sample rate:
 ```bash
-python3 flex_gui.py --freq 50.260 --rate 48000
+.venv/bin/python flex_gui.py --rate 48000
 ```
+
+### Bind to a specific SmartSDR GUI client UUID:
+```bash
+.venv/bin/python flex_gui.py --bind-client-id <uuid>
+```
+
+### Enable debug logging:
+```bash
+.venv/bin/python flex_gui.py --log-level DEBUG
+```
+
+Accepted log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
 
 ## Before Running
 
 1. Make sure FlexRadio is powered on and connected to your network
-2. In SmartSDR, enable DAXIQ channel 1 on slice A:
+2. In SmartSDR, set the panadapter center/bandwidth as desired (GUI owns pan tuning)
+3. In SmartSDR, enable DAXIQ channel 1 on slice A:
    - Open a panadapter
    - Right-click on slice A
    - Enable DAXIQ channel 1
@@ -49,7 +67,7 @@ python3 flex_gui.py --freq 50.260 --rate 48000
 The GUI connects to your FlexRadio via:
 - **Discovery**: Finds radio on network via UDP broadcast
 - **Control**: TCP connection on port 4992 for commands
-- **Data**: UDP port 4991 for I/Q streaming
+- **Data**: Uses a dynamically selected local UDP port for I/Q streaming
 
 The spectrogram is updated in real-time as IQ samples are received and processed with FFT.
 
@@ -61,8 +79,8 @@ The spectrogram is updated in real-time as IQ samples are received and processed
 - `daxiq_gui/processing.py` - FFT and buffer processing pipeline
 - `daxiq_gui/displays.py` - Plot/update rendering logic
 - `daxiq_gui/runtime.py` - Flex client thread lifecycle and shutdown
-- `daxiq_gui/app.py` - Application entrypoint (`main`)
-- `flex_client.py` - FlexRadio DAXIQ client library
+- `flexclient/` - Modular FlexRadio client package (`core`, `client`, `setup`, `tcp_client`, `vita`, `discovery`, `models`, `common`)
+- `flex_client.py` - Legacy compatibility shim that re-exports `flexclient.core`
 - `install_gui_deps.sh` - Dependency installation script
 
 ## Troubleshooting
@@ -70,7 +88,24 @@ The spectrogram is updated in real-time as IQ samples are received and processed
 If the GUI doesn't display data:
 1. Check that DAXIQ is enabled in SmartSDR on slice A
 2. Verify the radio is on the same network as your computer
-3. Check that no firewall is blocking UDP port 4991
+3. Check that no firewall is blocking the dynamically assigned local UDP listen port
+
+### Bind and Diagnostics Behavior
+
+At startup, the client may auto-bind to a discovered SmartSDR GUI client UUID (or use `--bind-client-id` when provided). Typical logs include:
+- `Sending bind command: client bind client_id=<uuid>`
+- `Bind command response payload: '...'`
+
+Pan/stream troubleshooting probes (`display pan list`, `display pan all`, `stream list`) were removed because they are often rejected by radio policy and are not required for normal operation.
+
+When bind succeeds but a control command is rejected, this typically indicates radio ownership/policy limits for that operation in the current firmware/context.
+
+### Tuning Display
+
+The GUI now displays pan tuning as:
+- `Pan Center: xx.xxx MHz BW: zz kHz`
+
+Pan center and bandwidth values come from SmartSDR status updates.
 
 ## Controls
 

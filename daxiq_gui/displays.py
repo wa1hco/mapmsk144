@@ -6,12 +6,24 @@ import numpy as np
 from PyQt5 import QtCore
 
 
+def _format_bandwidth_hz(bandwidth_hz):
+    if bandwidth_hz is None:
+        return None
+    try:
+        bw = float(bandwidth_hz)
+    except (TypeError, ValueError):
+        return None
+    if bw <= 0:
+        return None
+    return f"{int(round(bw / 1e3))} kHz"
+
+
 def update_displays(self):
     """Update all four display panels."""
     if len(self.realtime_data) == 0:
         return
 
-    tuned_freq_mhz, tuned_source = self._get_tuned_frequency_mhz()
+    tuned_freq_mhz, tuned_source, tuned_bandwidth_hz = self._get_tuned_frequency_mhz()
     center_freq_mhz = tuned_freq_mhz if tuned_freq_mhz is not None else self.center_freq_mhz
 
     if abs(center_freq_mhz - self.display_center_freq_mhz) > 1e-9:
@@ -97,10 +109,17 @@ def update_displays(self):
     self.utc_clock_label.setText(f"UTC: {utc_time}")
 
     if tuned_freq_mhz is not None:
-        self.tuned_freq_label.setText(f"Tuned ({tuned_source}): {tuned_freq_mhz:.6f} MHz")
+        if tuned_source == "Pan":
+            bw_text = _format_bandwidth_hz(tuned_bandwidth_hz)
+            if bw_text:
+                self.tuned_freq_label.setText(f"Pan Center: {tuned_freq_mhz:.3f} MHz BW: {bw_text}")
+            else:
+                self.tuned_freq_label.setText(f"Pan Center: {tuned_freq_mhz:.3f} MHz")
+        else:
+            self.tuned_freq_label.setText(f"Tuned ({tuned_source}): {tuned_freq_mhz:.3f} MHz")
         self.setWindowTitle(f'FlexRadio DAXIQ - {tuned_freq_mhz:.3f} MHz')
     else:
-        self.tuned_freq_label.setText(f"Tuned: {self.center_freq_mhz:.6f} MHz (requested)")
+        self.tuned_freq_label.setText(f"Tuned: {self.center_freq_mhz:.3f} MHz (requested)")
         self.setWindowTitle(f'FlexRadio DAXIQ - {self.center_freq_mhz:.3f} MHz')
 
     if self.spec_staging_filled and len(self.spectrogram_data) > 0:

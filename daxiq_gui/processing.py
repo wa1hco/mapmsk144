@@ -20,10 +20,17 @@ def process_iq_data(self, iq_samples, timestamp_int, timestamp_frac):
         window_gain = np.sqrt(np.mean(window**2))
         magnitude = np.abs(spectrum) / (self.fft_size * window_gain)
 
+        # Internal level standard: full-scale reference is 32768 for complex float samples.
+        # Source-specific conversion to this standard is handled at input ingestion.
         full_scale = 32768.0
         power_db = 20 * np.log10(magnitude / full_scale + 1e-12)
 
-        current_wall_time = time.time()
+        if self.source_mode == "wav":
+            current_wall_time = float(getattr(self, "_wav_time_cursor", 0.0))
+            wav_block_seconds = self.fft_size / self.sample_rate
+        else:
+            current_wall_time = time.time()
+            wav_block_seconds = 0.0
         time_in_window = current_wall_time % self.history_secs
 
         spec_boundary = int(current_wall_time / self.history_secs)
@@ -66,3 +73,6 @@ def process_iq_data(self, iq_samples, timestamp_int, timestamp_frac):
         if 0 <= self.energy_write_index < self.max_history:
             self.realtime_energy_buffer[self.energy_write_index] = total_energy
         self.energy_write_index += 1
+
+        if self.source_mode == "wav":
+            self._wav_time_cursor = current_wall_time + wav_block_seconds
