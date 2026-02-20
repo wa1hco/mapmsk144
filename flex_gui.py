@@ -7,7 +7,7 @@ import sys
 
 from PyQt5 import QtCore, QtWidgets
 
-from daxiq_gui.visualizer import DAXIQVisualizer
+from flex_daxiq_gui.visualizer import DAXIQVisualizer
 
 
 def _configure_logging(level_name: str):

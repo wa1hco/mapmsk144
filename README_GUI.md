@@ -74,11 +74,11 @@ The spectrogram is updated in real-time as IQ samples are received and processed
 ## Files
 
 - `flex_gui.py` - Compatibility launcher (still run this file)
-- `daxiq_gui/visualizer.py` - `DAXIQVisualizer` class and shared state
-- `daxiq_gui/ui.py` - UI layout and slider handlers
-- `daxiq_gui/processing.py` - FFT and buffer processing pipeline
-- `daxiq_gui/displays.py` - Plot/update rendering logic
-- `daxiq_gui/runtime.py` - Flex client thread lifecycle and shutdown
+- `flex_daxiq_gui/visualizer.py` - `DAXIQVisualizer` class and shared state
+- `flex_daxiq_gui/ui.py` - UI layout and slider handlers
+- `flex_daxiq_gui/processing.py` - FFT and buffer processing pipeline
+- `flex_daxiq_gui/displays.py` - Plot/update rendering logic
+- `flex_daxiq_gui/runtime.py` - Flex client thread lifecycle and shutdown
 - `flexclient/` - Modular FlexRadio client package (`core`, `client`, `setup`, `tcp_client`, `vita`, `discovery`, `models`, `common`)
 - `flex_client.py` - Legacy compatibility shim that re-exports `flexclient.core`
 - `install_gui_deps.sh` - Dependency installation script
